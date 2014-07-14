@@ -14,8 +14,21 @@
 # sudo picocom -b 115200 /dev/ttyUSB0
 
 # Carambola: get packet
-# clear; rmmod draiveris; rm /lib/modules/3.7.9/draiveris.ko; cd /tmp; rm kmod-draiveris*; wget http://192.168.0.63:8000/packages/kmod-draiveris_3.7.9-5_ar71xx.ipk; opkg install kmod-draiveris_3.7.9-5_ar71xx.ipk --force-reinstall; insmod /lib/modules/3.7.9/draiveris.ko
-# clear; rmmod draiveris; insmod /lib/modules/3.7.9/draiveris.ko mystring="zzzaaasss"
+## clear; rmmod draiveris; rm /lib/modules/3.7.9/draiveris.ko; cd /tmp; rm kmod-draiveris*; wget http://192.168.0.63:8000/packages/kmod-draiveris_3.7.9-5_ar71xx.ipk; opkg install kmod-draiveris_3.7.9-5_ar71xx.ipk --force-reinstall; insmod /lib/modules/3.7.9/draiveris.ko
+## clear; rmmod draiveris; insmod /lib/modules/3.7.9/draiveris.ko gpio_number=20
+# clear; rmmod draiveris; rm /lib/modules/3.7.9/draiveris.ko; cd /tmp; rm kmod-draiveris*; wget http://192.168.0.63:8000/packages/kmod-draiveris_3.7.9-5_ar71xx.ipk; opkg install kmod-draiveris_3.7.9-5_ar71xx.ipk --force-reinstall;
+# insmod /lib/modules/3.7.9/draiveris.ko gpio_number=20
+# mknod /dev/ws2812 c 253 0
+# echo -en '\x00\x00\x40' > /dev/ws2812
+
+# test.py
+#dev = os.open("/dev/ws2812", os.O_RDWR)
+#data = [0x0, 0x60, 0x00] 
+#os.write(dev, bytearray(data))
+
+
+
+
 
 # upgrade firmware
 # cd /tmp; wget http://192.168.0.63:8000/openwrt-ar71xx-generic-carambola2-squashfs-sysupgrade.bin; sysupgrade -v -n openwrt-ar71xx-generic-carambola2-squashfs-sysupgrade.bin
