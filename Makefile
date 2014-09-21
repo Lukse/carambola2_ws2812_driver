@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Žilvinas Valinskas, Saulius Lukšė
 # See LICENSE for more information.
 
+# http://www.adafruit.com/datasheets/WS2812.pdf
 
 # PC Build single package
 # cd /home/test/carambola2/

@@ -72,6 +72,8 @@ void led_bit(int bit)
     sysRegWrite(0x18040010L, 1<<gpio_number);
     sysRegWrite(0x18040010L, 1<<gpio_number);
     sysRegWrite(0x18040010L, 1<<gpio_number);
+
+    //sysRegWrite(0x1804000CL, 1<<gpio_number);
   }
   else
   {
@@ -99,6 +101,8 @@ void led_bit(int bit)
     sysRegWrite(0x18040010L, 1<<gpio_number);
     sysRegWrite(0x18040010L, 1<<gpio_number);
     sysRegWrite(0x18040010L, 1<<gpio_number);
+
+    //sysRegWrite(0x1804000CL, 1<<gpio_number);
   }
 }
 
@@ -114,6 +118,17 @@ void update_leds(char *buff, size_t len)
   sysRegWrite(0x1806000CL, 1<<31); // Just in case set watchdog to timeout some time later 
   sysRegWrite(0x18040000L, 1<<gpio_number); // output enable to PIN20
 
+  //static DEFINE_SPINLOCK(critical);
+
+  sysRegWrite(0x1804000CL, 1<<gpio_number);
+  // wait 65uS
+  for(i=0;i<1000;i++)
+  {
+    volatile int j = i;
+    sysRegWrite(0x18040010L, 1<<gpio_number);
+  }
+
+
   static DEFINE_SPINLOCK(critical);
   spin_lock_irqsave(&critical, flags);
   for (i = 0; i<len; i++)
@@ -125,6 +140,7 @@ void update_leds(char *buff, size_t len)
         led_bit(0);
   }
   sysRegWrite(0x18040010L, 1<<gpio_number);
+  //sysRegWrite(0x1804000CL, 1<<gpio_number);
   spin_unlock_irqrestore(&critical, flags);
 
 }
