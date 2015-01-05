@@ -1,5 +1,5 @@
 /*  
- *  hello-1.c - The simplest kernel module.
+ *  ws2812-draiveris.c - A bitbang kernel module for ws2812
  */
 #include <linux/init.h>
 #include <linux/module.h>	/* Needed by all modules */
