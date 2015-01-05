@@ -10,6 +10,7 @@
  * 
  * parameters: 
  *	gpio_number=20		# set base number. 
+ *	inverted=0		# have inverting line drivers at the GPIOs
  */
 #include <linux/init.h>
 #include <linux/module.h>	/* Needed by all modules */
@@ -71,6 +72,10 @@ static int gpio_number = 20; // default is nr 20
 module_param(gpio_number, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 MODULE_PARM_DESC(gpio_number, "GPIO number");
 
+static int inverted = 0; // default is 0 == normal. 1 == inverted is good for 74HCT02 line drivers.
+module_param(inverted, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+MODULE_PARM_DESC(inverted, "drive inverted outputs");
+
 #define SET_GPIOS_H(gpio_bits)	sysRegWrite(SYS_REG_GPIO_SET, gpio_bits)
 #define SET_GPIOS_L(gpio_bits)	sysRegWrite(SYS_REG_GPIO_CLEAR, gpio_bits)
 
@@ -98,8 +103,6 @@ void led_bit(int bit)
     SET_GPIOS_L( 1<<gpio_number);
     SET_GPIOS_L( 1<<gpio_number);
     SET_GPIOS_L( 1<<gpio_number);
-
-    //SET_GPIOS_H( 1<<gpio_number);
   }
   else
   {
@@ -127,8 +130,61 @@ void led_bit(int bit)
     SET_GPIOS_L( 1<<gpio_number);
     SET_GPIOS_L( 1<<gpio_number);
     SET_GPIOS_L( 1<<gpio_number);
+  }
+}
 
-    //SET_GPIOS_H( 1<<gpio_number);
+
+void led_bit_inverted(int bit)
+{
+  if (bit==0)
+  {
+    // high (3.3us)
+    SET_GPIOS_L( 1<<gpio_number);
+    SET_GPIOS_L( 1<<gpio_number);
+    SET_GPIOS_L( 1<<gpio_number);
+    SET_GPIOS_L( 1<<gpio_number);
+    SET_GPIOS_L( 1<<gpio_number);
+
+    // low (7us)
+    SET_GPIOS_H( 1<<gpio_number);
+    SET_GPIOS_H( 1<<gpio_number);
+    SET_GPIOS_H( 1<<gpio_number);
+    SET_GPIOS_H( 1<<gpio_number);
+    SET_GPIOS_H( 1<<gpio_number);
+    SET_GPIOS_H( 1<<gpio_number);
+    SET_GPIOS_H( 1<<gpio_number);
+    SET_GPIOS_H( 1<<gpio_number);
+    SET_GPIOS_H( 1<<gpio_number);
+    SET_GPIOS_H( 1<<gpio_number);
+    SET_GPIOS_H( 1<<gpio_number);
+    SET_GPIOS_H( 1<<gpio_number);
+  }
+  else
+  {
+    // high (7us)
+    SET_GPIOS_L( 1<<gpio_number);
+    SET_GPIOS_L( 1<<gpio_number);
+    SET_GPIOS_L( 1<<gpio_number);
+    SET_GPIOS_L( 1<<gpio_number);
+    SET_GPIOS_L( 1<<gpio_number);
+    SET_GPIOS_L( 1<<gpio_number);
+    SET_GPIOS_L( 1<<gpio_number);
+    SET_GPIOS_L( 1<<gpio_number);
+    SET_GPIOS_L( 1<<gpio_number);
+    SET_GPIOS_L( 1<<gpio_number);
+    SET_GPIOS_L( 1<<gpio_number);
+
+    // low (3.3us)
+    SET_GPIOS_H( 1<<gpio_number);
+    SET_GPIOS_H( 1<<gpio_number);
+    SET_GPIOS_H( 1<<gpio_number);
+    SET_GPIOS_H( 1<<gpio_number);
+    SET_GPIOS_H( 1<<gpio_number);
+    SET_GPIOS_H( 1<<gpio_number);
+    SET_GPIOS_H( 1<<gpio_number);
+    SET_GPIOS_H( 1<<gpio_number);
+    SET_GPIOS_H( 1<<gpio_number);
+    SET_GPIOS_H( 1<<gpio_number);
   }
 }
 
@@ -140,6 +196,8 @@ void update_leds(const char *buff, size_t len)
   unsigned long flags;
   long int i = 0;
   int b = 0;
+  static int grb_increment[3] = { -1, 2, 2 };		// swap red and green: r g b -> g r b
+  int grb_idx = 0;					// counting: 1 0 2  4 3 5  7 6 8  ...
 
   static DEFINE_SPINLOCK(critical);
 
@@ -147,26 +205,49 @@ void update_leds(const char *buff, size_t len)
   i = sysRegRead(SYS_REG_GPIO_OE);
   sysRegWrite(SYS_REG_GPIO_OE, i|1<<gpio_number); 	// output enable to PIN20
 
-  // wait 65uS
-  for(i=0;i<1000;i++)
-  {
-    volatile int j = i;
-    SET_GPIOS_L( 1<<gpio_number);
-  }
+  if (inverted)
+    {
+      // wait 65uS
+      for(i=0;i<1000;i++)
+      {
+	volatile int j = i;
+	SET_GPIOS_H( 1<<gpio_number);
+      }
+
+      spin_lock_irqsave(&critical, flags);
+      for (i = 1; i<len; i += grb_increment[grb_idx++])
+      {
+	for(b = 7; b>=0; b--)
+	  if (buff[i] & (1 << b))
+	    led_bit_inverted(1);
+	  else
+	    led_bit_inverted(0);
+        if (grb_idx >= 3) grb_idx = 0;
+      }
+      spin_unlock_irqrestore(&critical, flags);
+    }
+  else	// not inverted
+    {
+      // wait 65uS
+      for(i=0;i<1000;i++)
+      {
+	volatile int j = i;
+	SET_GPIOS_L( 1<<gpio_number);
+      }
 
 
-  spin_lock_irqsave(&critical, flags);
-  for (i = 0; i<len; i++)
-  {
-    for(b = 7; b>=0; b--)
-      if (buff[i] & (1 << b))
-        led_bit(1);
-    else
-        led_bit(0);
-  }
-  SET_GPIOS_L( 1<<gpio_number);
-  spin_unlock_irqrestore(&critical, flags);
-
+      spin_lock_irqsave(&critical, flags);
+      for (i = 1; i<len; i += grb_increment[grb_idx++])
+      {
+	for(b = 7; b>=0; b--)
+	  if (buff[i] & (1 << b))
+	    led_bit(1);
+	  else
+	    led_bit(0);
+        if (grb_idx >= 3) grb_idx = 0;
+      }
+      spin_unlock_irqrestore(&critical, flags);
+    }
 }
 
 
