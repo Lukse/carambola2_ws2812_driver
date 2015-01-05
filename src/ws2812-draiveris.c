@@ -200,6 +200,9 @@ static struct file_operations fops = {
   .release = device_release
 };
 
+// we must create *and remove* device classes properly, otherwise we get horrible 
+// kernel stack backtraces.
+static struct class *ws2812_class;
 
 int init_module(void)
 { 
@@ -214,7 +217,14 @@ int init_module(void)
   printk(KERN_INFO DEVICE_NAME ": GPIO number: %d\n", gpio_number);
 
 
-	return SUCCESS;
+  ws2812_class = class_create(THIS_MODULE, DEVICE_NAME);
+  if (!device_create(ws2812_class, NULL, MKDEV(WS2812_MAJOR, 0), NULL, DEVICE_NAME ))
+    {
+      printk(KERN_ALERT DEVICE_NAME": device_create failed. Try 'mknod /dev/%s c %d 0'.\n", DEVICE_NAME, WS2812_MAJOR);
+      // return -ENXIO;		// better continue anyway...
+    }
+
+  return SUCCESS;
 }
 
 
@@ -223,6 +233,8 @@ int init_module(void)
  */
 void cleanup_module(void)
 {  
+  device_destroy(ws2812_class, MKDEV(WS2812_MAJOR,0));
+  class_destroy(ws2812_class);
   unregister_chrdev(WS2812_MAJOR, DEVICE_NAME);
   printk(KERN_ALERT DEVICE_NAME": Bye, that's all.\n");
 }
